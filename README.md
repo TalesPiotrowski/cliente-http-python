@@ -6,8 +6,8 @@ Este projeto implementa um cliente HTTP simples em Python, capaz de realizar req
 
 ## Pré-requisitos
 - Python 3.x
-- Import `requests` (já está inclusa no pacote `pip._vendor.requests`)
-- Import json
+- websocket instalado : pip install websocket-client
+
 
 ## Uso
 Execute o script main.py com os parâmetros apropriados. Exemplos de uso:
