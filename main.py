@@ -1,34 +1,59 @@
-import pip._vendor.requests as requests
+import requests
 import json
+import logging
+import os
+import socket
 
-def fetch_data(url, method="GET", data=None):
-    # Escolher o método de parâmetro para a requisição
-    if method.upper() == "GET":
-        response = requests.get(url)
-    elif method.upper() == "POST":
-        response = requests.post(url, data=data)
-    elif method.upper() == "PUT":
-        response = requests.put(url, data=data)
-    elif method.upper() == "DELETE":
-        response = requests.delete(url)
-    else:
-        print(f"Unsupported method: {method}")
-        return
+class SimpleHttpClient:
+    def __init__(self):
+        self.session = requests.Session()
+        logging.basicConfig(level=logging.INFO)
 
-    if response.status_code == 200:
-        print(f"\nSuccess! Status code: {response.status_code}")
-    else:
-        print(f"\nFailed to fetch data. Status code: {response.status_code}")
+    def ping_host(self, url):
+        hostname = socket.gethostbyname(url.split("//")[-1].split("/")[0])
+        response = os.system(f"ping -n 1 {hostname}")
+        if response == 0:
+            logging.info(f"{hostname} is reachable")
+            return True
+        else:
+            logging.error(f"{hostname} is not reachable")
+            return False
 
-    print("Response Headers:")
-    for key, value in response.headers.items():
-        print(f"{key}: {value}")
-    
-    print("\nContent:")
-    print(response.text)
+    def fetch_data(self, url, method="GET", data=None, headers=None, timeout=10):
+        if not self.ping_host(url):
+            logging.error("Host is not reachable. Aborting request.")
+            return
 
-# Example usage
-#fetch_data('https://fakestoreapi.com/products', 'GET')
-#fetch_data('https://fakestoreapi.com/products', 'POST', data=json.dumps({"title": 'test product', "price": 13.5, "description": 'lorem ipsum set', "image": 'https://i.pravatar.cc', "category": 'electronic'}))
-#fetch_data('https://fakestoreapi.com/products/7', 'PUT', data=json.dumps({"title": 'test product', "price": 13.5, "description": 'lorem ipsum set', "image": 'https://i.pravatar.cc', "category": 'electronic'}))
-fetch_data('https://fakestoreapi.com/products/6', 'DELETE')
+        try:
+            response = self.session.request(method=method, url=url, data=data, headers=headers, timeout=timeout)
+            self._handle_response(response)
+        except requests.RequestException as e:
+            logging.error(f"Request failed: {e}")
+
+    def _handle_response(self, response):
+        if response.ok:
+            logging.info(f"Success! Status code: {response.status_code}")
+        else:
+            logging.error(f"Failed to fetch data. Status code: {response.status_code}")
+
+        logging.info("Response Headers:")
+        for key, value in response.headers.items():
+            logging.info(f"{key}: {value}")
+        
+        logging.info("\nContent:")
+        logging.info(response.text)
+
+
+client = SimpleHttpClient()
+
+# GET request
+# client.fetch_data('https://fakestoreapi.com/products', 'GET')
+
+# POST request with custom headers
+# client.fetch_data('https://fakestoreapi.com/products', 'POST', data=json.dumps({"title": 'test product', "price": 13.5, "description": 'lorem ipsum set', "image": 'https://i.pravatar.cc', "category": 'electronic'}), headers={"Content-Type": "application/json"})
+
+# PUT request
+# client.fetch_data('https://fakestoreapi.com/products/7', 'PUT', data=json.dumps({"title": 'test product', "price": 13.5, "description": 'lorem ipsum set', "image": 'https://i.pravatar.cc', "category": 'electronic'}))
+
+# DELETE request
+client.fetch_data('https://fakestoreapi.com/products/7', 'DELETE')
